@@ -241,4 +241,109 @@ class TaskTest extends TestCase
                 ],
             ]);
     }
+
+    public function test_invalid_sort_column_falls_back_to_default(): void
+    {
+        Task::factory(3)->create(['user_id' => $this->user->id]);
+
+        // Try to sort by an invalid column (e.g., 'invalid_column')
+        // The security improvement: should not cause SQL error, should fall back gracefully
+        $response = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->getJson('/api/tasks?sort_by=invalid_column');
+
+        // Verify request succeeds and doesn't expose SQL errors
+        $response->assertStatus(200)
+            ->assertJsonCount(3, 'data');
+
+        // Verify data structure is correct
+        $response->assertJsonStructure([
+            'data' => [
+                '*' => ['id', 'title', 'description', 'status', 'priority'],
+            ],
+        ]);
+    }
+
+    public function test_invalid_sort_order_falls_back_to_desc(): void
+    {
+        Task::factory(3)->create(['user_id' => $this->user->id]);
+
+        // Try to use an invalid sort order (should fall back gracefully, not cause SQL error)
+        $response = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->getJson('/api/tasks?sort_order=invalid');
+
+        // Verify request succeeds
+        $response->assertStatus(200)
+            ->assertJsonCount(3, 'data');
+
+        // Verify data structure is correct
+        $response->assertJsonStructure([
+            'data' => [
+                '*' => ['id', 'title', 'description', 'status', 'priority'],
+            ],
+        ]);
+    }
+
+    public function test_cannot_update_task_with_past_due_date(): void
+    {
+        $task = Task::factory()->create([
+            'user_id' => $this->user->id,
+            'due_date' => now()->addDays(7),
+        ]);
+
+        $response = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->putJson("/api/tasks/{$task->id}", [
+                'due_date' => now()->subDays(1)->format('Y-m-d'),
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['due_date']);
+    }
+
+    public function test_cannot_create_task_with_past_due_date(): void
+    {
+        $taskData = [
+            'title' => 'New Task',
+            'description' => 'Task description',
+            'status' => 'pending',
+            'priority' => 1,
+            'due_date' => now()->subDays(1)->format('Y-m-d'),
+        ];
+
+        $response = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->postJson('/api/tasks', $taskData);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['due_date']);
+    }
+
+    public function test_valid_sort_columns_work_correctly(): void
+    {
+        Task::factory()->create([
+            'user_id' => $this->user->id,
+            'title' => 'Task A',
+            'priority' => 2,
+        ]);
+
+        Task::factory()->create([
+            'user_id' => $this->user->id,
+            'title' => 'Task B',
+            'priority' => 0,
+        ]);
+
+        // Test sorting by priority ascending
+        $response = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->getJson('/api/tasks?sort_by=priority&sort_order=asc');
+
+        $response->assertStatus(200);
+        $this->assertEquals(0, $response->json('data.0.priority'));
+        $this->assertEquals(2, $response->json('data.1.priority'));
+
+        // Test sorting by title descending
+        $response = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->getJson('/api/tasks?sort_by=title&sort_order=desc');
+
+        $response->assertStatus(200);
+        $this->assertEquals('Task B', $response->json('data.0.title'));
+        $this->assertEquals('Task A', $response->json('data.1.title'));
+    }
 }

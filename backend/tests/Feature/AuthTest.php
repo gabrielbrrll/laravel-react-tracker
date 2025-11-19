@@ -118,4 +118,138 @@ class AuthTest extends TestCase
                 ],
             ]);
     }
+
+    public function test_registration_fails_with_password_without_numbers(): void
+    {
+        $response = $this->postJson('/api/register', [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => 'passwordonly',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    }
+
+    public function test_registration_fails_with_password_without_letters(): void
+    {
+        $response = $this->postJson('/api/register', [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => '12345678',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    }
+
+    public function test_registration_fails_with_short_password(): void
+    {
+        $response = $this->postJson('/api/register', [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => 'pass1',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    }
+
+    public function test_login_rate_limiting_works(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'test@example.com',
+            'password' => bcrypt('password123'),
+        ]);
+
+        // Make 5 failed login attempts (should succeed)
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/login', [
+                'email' => 'test@example.com',
+                'password' => 'wrongpassword',
+            ]);
+        }
+
+        // 6th attempt should be rate limited
+        $response = $this->postJson('/api/login', [
+            'email' => 'test@example.com',
+            'password' => 'wrongpassword',
+        ]);
+
+        $response->assertStatus(429);
+    }
+
+    public function test_registration_rate_limiting_works(): void
+    {
+        // Make 3 registration attempts (should succeed)
+        for ($i = 0; $i < 3; $i++) {
+            $this->postJson('/api/register', [
+                'name' => 'Test User',
+                'email' => "test{$i}@example.com",
+                'password' => 'password123',
+            ]);
+        }
+
+        // 4th attempt should be rate limited
+        $response = $this->postJson('/api/register', [
+            'name' => 'Test User',
+            'email' => 'test4@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(429);
+    }
+
+    public function test_user_response_does_not_expose_internal_fields(): void
+    {
+        $response = $this->postJson('/api/register', [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'user' => ['id', 'name', 'email'],
+            ])
+            ->assertJsonMissing([
+                'email_verified_at',
+                'created_at',
+                'updated_at',
+            ]);
+
+        // Verify the user object only has the expected keys
+        $userData = $response->json('user');
+        $this->assertArrayHasKey('id', $userData);
+        $this->assertArrayHasKey('name', $userData);
+        $this->assertArrayHasKey('email', $userData);
+        $this->assertArrayNotHasKey('email_verified_at', $userData);
+        $this->assertArrayNotHasKey('created_at', $userData);
+        $this->assertArrayNotHasKey('updated_at', $userData);
+    }
+
+    public function test_login_response_does_not_expose_internal_fields(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'test@example.com',
+            'password' => bcrypt('password123'),
+        ]);
+
+        $response = $this->postJson('/api/login', [
+            'email' => 'test@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(200);
+
+        // Verify the user object only has the expected keys
+        $userData = $response->json('user');
+        $this->assertArrayHasKey('id', $userData);
+        $this->assertArrayHasKey('name', $userData);
+        $this->assertArrayHasKey('email', $userData);
+        $this->assertArrayNotHasKey('email_verified_at', $userData);
+        $this->assertArrayNotHasKey('created_at', $userData);
+        $this->assertArrayNotHasKey('updated_at', $userData);
+        $this->assertArrayNotHasKey('password', $userData);
+    }
 }
