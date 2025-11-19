@@ -308,6 +308,30 @@ GET    /api/tasks/statistics # Get task statistics
 - `sort_order`: asc, desc
 - `per_page`: Number of items per page (default: 15)
 
+## API Documentation
+
+Interactive API documentation is automatically generated using **Scramble** and available at:
+
+**http://localhost:8000/docs/api**
+
+The documentation includes:
+- All available endpoints with request/response examples
+- Authentication requirements (Bearer token)
+- Request body schemas (auto-detected from FormRequests)
+- Response schemas (auto-detected from API Resources)
+- Interactive "Try it out" feature to test endpoints directly in the browser
+
+**Features:**
+- Zero configuration - automatically scans routes, controllers, and Form Requests
+- OpenAPI/Swagger standard format
+- Sanctum authentication integration
+- Real-time updates when code changes
+
+**Example Usage:**
+1. Start the Laravel server: `php artisan serve`
+2. Open http://localhost:8000/docs/api in your browser
+3. Explore endpoints and test them with the "Try it out" button
+
 ## Environment Variables
 
 ### Backend (.env)
