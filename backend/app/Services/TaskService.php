@@ -1,0 +1,73 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Task;
+use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+
+class TaskService
+{
+    public function getAllTasks(User $user, array $filters = []): LengthAwarePaginator
+    {
+        $query = Task::forUser($user->id)->with('user');
+
+        if (isset($filters['status'])) {
+            $query->byStatus($filters['status']);
+        }
+
+        if (isset($filters['due_date'])) {
+            $query->whereDate('due_date', $filters['due_date']);
+        }
+
+        if (isset($filters['overdue']) && $filters['overdue']) {
+            $query->where('due_date', '<', now())
+                ->where('status', '!=', 'completed');
+        }
+
+        if (isset($filters['priority'])) {
+            $query->where('priority', $filters['priority']);
+        }
+
+        $sortBy = $filters['sort_by'] ?? 'created_at';
+        $sortOrder = $filters['sort_order'] ?? 'desc';
+        $query->orderBy($sortBy, $sortOrder);
+
+        $perPage = $filters['per_page'] ?? 15;
+
+        return $query->paginate($perPage);
+    }
+
+    public function createTask(User $user, array $data): Task
+    {
+        $data['user_id'] = $user->id;
+
+        return Task::create($data);
+    }
+
+    public function updateTask(Task $task, array $data): Task
+    {
+        $task->update($data);
+
+        return $task->fresh();
+    }
+
+    public function deleteTask(Task $task): bool
+    {
+        return $task->delete();
+    }
+
+    public function getTaskStatistics(User $user): array
+    {
+        $tasks = Task::forUser($user->id);
+
+        return [
+            'total' => $tasks->count(),
+            'pending' => $tasks->clone()->byStatus('pending')->count(),
+            'in_progress' => $tasks->clone()->byStatus('in_progress')->count(),
+            'completed' => $tasks->clone()->byStatus('completed')->count(),
+            'overdue' => $tasks->clone()->where('due_date', '<', now())
+                ->where('status', '!=', 'completed')->count(),
+        ];
+    }
+}
