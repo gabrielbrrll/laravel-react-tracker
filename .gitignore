@@ -27,3 +27,8 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Node dependencies (root should not have these)
+/node_modules
+/package.json
+/package-lock.json
