@@ -1,4 +1,4 @@
-name: Laravel Tests
+name: Laravel CI
 
 on:
   push:
@@ -7,7 +7,35 @@ on:
     branches: [main, develop]
 
 jobs:
-  laravel-tests:
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, bcmath
+          coverage: none
+
+      - name: Install Composer dependencies
+        working-directory: backend
+        run: composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
+
+      - name: Code Formatting Check (Pint)
+        working-directory: backend
+        run: vendor/bin/pint --test
+
+      - name: Static Analysis (Larastan)
+        working-directory: backend
+        run: vendor/bin/phpstan analyse --memory-limit=2G
+
+  tests:
+    name: Tests
     runs-on: ubuntu-latest
 
     services:
@@ -59,18 +87,6 @@ jobs:
         working-directory: backend
         run: php artisan migrate --force
 
-      - name: Code Formatting Check (Pint)
-        working-directory: backend
-        run: vendor/bin/pint --test
-
-      - name: Static Analysis (Larastan)
-        working-directory: backend
-        run: vendor/bin/phpstan analyse --memory-limit=2G
-
       - name: Run tests (PHPUnit)
         working-directory: backend
         run: php artisan test
-
-      - name: Code Quality Summary
-        if: always()
-        run: echo "Code quality checks completed"
