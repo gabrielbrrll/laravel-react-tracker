@@ -29,8 +29,13 @@ class TaskService
             $query->where('priority', $filters['priority']);
         }
 
+        $allowedSortColumns = ['created_at', 'due_date', 'priority', 'status', 'title'];
         $sortBy = $filters['sort_by'] ?? 'created_at';
+        $sortBy = in_array($sortBy, $allowedSortColumns) ? $sortBy : 'created_at';
+
         $sortOrder = $filters['sort_order'] ?? 'desc';
+        $sortOrder = in_array($sortOrder, ['asc', 'desc']) ? $sortOrder : 'desc';
+
         $query->orderBy($sortBy, $sortOrder);
 
         $perPage = $filters['per_page'] ?? 15;
@@ -40,9 +45,11 @@ class TaskService
 
     public function createTask(User $user, array $data): Task
     {
-        $data['user_id'] = $user->id;
+        $task = new Task($data);
+        $task->user_id = $user->id;
+        $task->save();
 
-        return Task::create($data);
+        return $task;
     }
 
     public function updateTask(Task $task, array $data): Task
