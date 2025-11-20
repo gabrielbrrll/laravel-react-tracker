@@ -35,13 +35,43 @@ A modern full-stack task management application with Laravel 12 API backend and 
 
 ## Quick Start
 
-### Prerequisites
-- PHP 8.3+
+### Option 1: Docker (Recommended)
+
+The easiest way to run the application with all services containerized:
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd laravel-react-vite-task-tracker
+
+# Start all services
+docker-compose up -d --build
+
+# Access the application
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:8000
+# API Docs: http://localhost:8000/docs/api
+# PostgreSQL: localhost:5432
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Stop and remove volumes
+docker-compose down -v
+```
+
+### Option 2: Local Installation
+
+**Prerequisites:**
+- PHP 8.2+ (8.3 recommended)
 - Composer
 - Node.js 20+
 - PostgreSQL 16+
 
-### Installation
+**Installation:**
 
 ```bash
 # Clone repository
@@ -54,25 +84,23 @@ composer install
 cp .env.example .env
 php artisan key:generate
 
-# Configure .env with your database credentials
-# Then run migrations and seed
+# Configure database in .env:
+# DB_CONNECTION=pgsql
+# DB_HOST=127.0.0.1
+# DB_PORT=5432
+# DB_DATABASE=task_tracker
+# DB_USERNAME=postgres
+# DB_PASSWORD=your_password
+
+# Run migrations and seed
 php artisan migrate --seed
-php artisan serve  # Runs on http://localhost:8000
+php artisan serve  # http://localhost:8000
 
 # Frontend setup (in new terminal)
-cd frontend
+cd ../frontend
 npm install
 cp .env.example .env
-npm run dev  # Runs on http://localhost:3000
-```
-
-### Docker Setup
-
-```bash
-docker-compose up -d --build
-# Frontend: http://localhost:3000
-# Backend: http://localhost:8000
-# API Docs: http://localhost:8000/docs/api
+npm run dev  # http://localhost:3000
 ```
 
 ## Environment Configuration
@@ -172,21 +200,69 @@ npm run format:check      # Prettier
 └── docker-compose.yml
 ```
 
+## API Documentation
+
+Interactive API documentation is auto-generated with Scramble:
+
+**http://localhost:8000/docs/api**
+
+Features:
+- Complete endpoint reference
+- Request/response examples
+- Authentication guide
+- Try-it-out functionality
+
 ## Sample Credentials
 
-After running `php artisan db:seed`:
+After running `php artisan db:seed` or `docker-compose up`:
 
 ```
 Email: test@example.com
 Password: password
 ```
 
+The seeder creates 5 users with 5 tasks each (25 total tasks).
+
+## Docker Services
+
+The `docker-compose.yml` includes:
+
+| Service | Container | Port | Description |
+|---------|-----------|------|-------------|
+| postgres | task_tracker_db | 5432 | PostgreSQL 16 database |
+| backend | task_tracker_backend | 8000 | Laravel API server |
+| frontend | task_tracker_frontend | 3000 | React Vite dev server |
+
+**Volumes:**
+- `postgres_data` - Persistent database storage
+- `backend_vendor` - PHP dependencies
+- `frontend_node_modules` - Node dependencies
+
 ## Troubleshooting
 
-**CORS Issues:** Verify `FRONTEND_URL` in backend `.env`
-**Database Connection:** Check PostgreSQL is running with `brew services list`
-**Port Conflicts:** Use `php artisan serve --port=8001` or Vite will auto-increment
-**Auth Issues:** Clear cache with `php artisan config:clear`
+### Docker Issues
+```bash
+# Rebuild containers
+docker-compose up -d --build --force-recreate
+
+# Check container logs
+docker-compose logs backend
+docker-compose logs frontend
+
+# Access backend container
+docker exec -it task_tracker_backend sh
+
+# Reset everything
+docker-compose down -v
+docker-compose up -d --build
+```
+
+### Local Development
+- **CORS Issues:** Verify `FRONTEND_URL` in backend `.env`
+- **Database Connection:** Check PostgreSQL is running with `brew services list` (macOS) or `sudo systemctl status postgresql` (Linux)
+- **Port Conflicts:** Use `php artisan serve --port=8001` or Vite will auto-increment to 3001
+- **Auth Issues:** Clear cache with `php artisan config:clear`
+- **Migration Errors:** Drop database and re-run: `php artisan migrate:fresh --seed`
 
 ## License
 

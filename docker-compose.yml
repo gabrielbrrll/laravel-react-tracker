@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: task_tracker_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: task_tracker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Laravel Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: task_tracker_backend
+    restart: unless-stopped
+    working_dir: /var/www/html
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/var/www/html
+      - backend_vendor:/var/www/html/vendor
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=task_tracker
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=password
+      - FRONTEND_URL=http://localhost:3000
+      - SANCTUM_STATEFUL_DOMAINS=localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "composer install && php artisan key:generate --force && php artisan migrate --seed --force && php artisan serve --host=0.0.0.0 --port=8000"
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: task_tracker_frontend
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8000/api
+      - VITE_API_BASE_URL=http://localhost:8000
+    depends_on:
+      - backend
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+volumes:
+  postgres_data:
+    driver: local
+  backend_vendor:
+    driver: local
+  frontend_node_modules:
+    driver: local

@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+docs/
+
+# Backend
+backend/vendor/
+backend/node_modules/
+backend/.env
+backend/.env.backup
+backend/storage/logs/*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+backend/coverage/
+frontend/coverage/
