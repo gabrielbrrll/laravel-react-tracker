@@ -19,7 +19,7 @@ class UpdateTaskRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:1000'],
             'status' => ['sometimes', Rule::in(['pending', 'in_progress', 'completed', 'cancelled'])],
             'due_date' => ['nullable', 'date', 'after_or_equal:today'],
-            'priority' => ['sometimes', 'integer', 'between:0,2'],
+            'priority' => ['sometimes', Rule::in(['low', 'medium', 'high'])],
         ];
     }
 
