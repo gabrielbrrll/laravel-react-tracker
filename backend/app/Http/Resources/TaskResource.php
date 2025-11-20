@@ -18,8 +18,7 @@ class TaskResource extends JsonResource
             'title' => $this->title,
             'description' => $this->description,
             'status' => $this->status,
-            'priority' => $this->priority,
-            'priority_label' => $this->getPriorityLabel(),
+            'priority' => $this->priority_string, // Return string instead of integer
             'due_date' => $this->due_date?->format('Y-m-d'),
             'is_overdue' => $this->is_overdue,
             'user' => [
