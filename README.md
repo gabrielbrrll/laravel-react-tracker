@@ -2,6 +2,8 @@
 
 A modern full-stack task management application with Laravel 12 API backend and React 18 + TypeScript frontend.
 
+https://drive.google.com/file/d/1QzJuSd9bYGR5NPdRoGy56SQBNjL9cCPt/view?usp=sharing
+
 ## Features
 
 ### Backend (Laravel 12)
