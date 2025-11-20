@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
@@ -19,54 +19,25 @@ export const TaskFilters = ({
   onReset,
   isLoading = false,
 }: TaskFiltersProps) => {
-  const [searchValue, setSearchValue] = useState(filters.search || '')
+  const [pendingFilters, setPendingFilters] = useState<TaskFiltersType>(filters)
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onFilterChange({
-        ...filters,
-        search: searchValue || undefined,
-      })
-    }, 300)
+  const hasChanges =
+    pendingFilters.search !== filters.search ||
+    pendingFilters.status !== filters.status ||
+    pendingFilters.priority !== filters.priority ||
+    pendingFilters.sort_by !== filters.sort_by ||
+    pendingFilters.sort_order !== filters.sort_order
 
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchValue])
-
-  const handleStatusChange = (status: string) => {
-    onFilterChange({
-      ...filters,
-      status:
-        status === 'all' ? undefined : (status as TaskFiltersType['status']),
-    })
-  }
-
-  const handlePriorityChange = (priority: string) => {
-    onFilterChange({
-      ...filters,
-      priority:
-        priority === 'all'
-          ? undefined
-          : (priority as TaskFiltersType['priority']),
-    })
-  }
-
-  const handleSortChange = (sortBy: string) => {
-    onFilterChange({
-      ...filters,
-      sort_by: sortBy as TaskFiltersType['sort_by'],
-    })
-  }
-
-  const handleSortOrderChange = () => {
-    onFilterChange({
-      ...filters,
-      sort_order: filters.sort_order === 'asc' ? 'desc' : 'asc',
-    })
+  const handleApply = () => {
+    onFilterChange(pendingFilters)
   }
 
   const handleReset = () => {
-    setSearchValue('')
+    const defaultFilters: TaskFiltersType = {
+      sort_by: 'created_at',
+      sort_order: 'desc',
+    }
+    setPendingFilters(defaultFilters)
     onReset()
   }
 
@@ -82,11 +53,18 @@ export const TaskFilters = ({
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
           )}
         </div>
-        {hasActiveFilters && (
-          <Button variant="secondary" size="sm" onClick={handleReset}>
-            Reset
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {hasChanges && (
+            <Button variant="primary" size="sm" onClick={handleApply}>
+              Apply
+            </Button>
+          )}
+          {hasActiveFilters && (
+            <Button variant="secondary" size="sm" onClick={handleReset}>
+              Reset
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -94,8 +72,13 @@ export const TaskFilters = ({
           <Input
             label="Search"
             type="text"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
+            value={pendingFilters.search || ''}
+            onChange={(e) =>
+              setPendingFilters({
+                ...pendingFilters,
+                search: e.target.value || undefined,
+              })
+            }
             placeholder="Search tasks..."
           />
         </div>
@@ -109,8 +92,16 @@ export const TaskFilters = ({
           </label>
           <select
             id="status-filter"
-            value={filters.status || 'all'}
-            onChange={(e) => handleStatusChange(e.target.value)}
+            value={pendingFilters.status || 'all'}
+            onChange={(e) =>
+              setPendingFilters({
+                ...pendingFilters,
+                status:
+                  e.target.value === 'all'
+                    ? undefined
+                    : (e.target.value as TaskFiltersType['status']),
+              })
+            }
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="all">All Status</option>
@@ -129,8 +120,16 @@ export const TaskFilters = ({
           </label>
           <select
             id="priority-filter"
-            value={filters.priority || 'all'}
-            onChange={(e) => handlePriorityChange(e.target.value)}
+            value={pendingFilters.priority || 'all'}
+            onChange={(e) =>
+              setPendingFilters({
+                ...pendingFilters,
+                priority:
+                  e.target.value === 'all'
+                    ? undefined
+                    : (e.target.value as TaskFiltersType['priority']),
+              })
+            }
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="all">All Priority</option>
@@ -150,8 +149,13 @@ export const TaskFilters = ({
           <div className="flex gap-2">
             <select
               id="sort-by-filter"
-              value={filters.sort_by || 'created_at'}
-              onChange={(e) => handleSortChange(e.target.value)}
+              value={pendingFilters.sort_by || 'created_at'}
+              onChange={(e) =>
+                setPendingFilters({
+                  ...pendingFilters,
+                  sort_by: e.target.value as TaskFiltersType['sort_by'],
+                })
+              }
               className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="created_at">Created Date</option>
@@ -162,11 +166,17 @@ export const TaskFilters = ({
             </select>
             <button
               type="button"
-              onClick={handleSortOrderChange}
+              onClick={() =>
+                setPendingFilters({
+                  ...pendingFilters,
+                  sort_order:
+                    pendingFilters.sort_order === 'asc' ? 'desc' : 'asc',
+                })
+              }
               className="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm hover:bg-gray-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              title={`Sort ${filters.sort_order === 'asc' ? 'ascending' : 'descending'}`}
+              title={`Sort ${pendingFilters.sort_order === 'asc' ? 'ascending' : 'descending'}`}
             >
-              {filters.sort_order === 'asc' ? '↑' : '↓'}
+              {pendingFilters.sort_order === 'asc' ? '↑' : '↓'}
             </button>
           </div>
         </div>
