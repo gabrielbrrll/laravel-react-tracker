@@ -6,6 +6,7 @@ import type { Task } from '@/api/types'
 interface TaskListProps {
   tasks: Task[]
   pendingTaskIds: Set<number>
+  searchTerm?: string
   onEdit: (_task: Task) => void
   onDelete: (_taskId: number) => void
   onStatusChange: (_taskId: number, _status: Task['status']) => void
@@ -14,6 +15,7 @@ interface TaskListProps {
 export const TaskList = ({
   tasks,
   pendingTaskIds,
+  searchTerm,
   onEdit,
   onDelete,
   onStatusChange,
@@ -35,6 +37,7 @@ export const TaskList = ({
           key={task.id}
           task={task}
           isPending={pendingTaskIds.has(task.id)}
+          searchTerm={searchTerm}
           onEdit={onEdit}
           onDelete={onDelete}
           onStatusChange={onStatusChange}

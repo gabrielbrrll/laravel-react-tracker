@@ -34,12 +34,21 @@ class TaskService
             $query->where('priority', $priority);
         }
 
-        if (isset($filters['search']) && !empty($filters['search'])) {
+        $hasSearch = isset($filters['search']) && !empty($filters['search']);
+        if ($hasSearch) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'LIKE', "%{$search}%")
                     ->orWhere('description', 'LIKE', "%{$search}%");
             });
+
+            $query->orderByRaw("
+                CASE
+                    WHEN title LIKE ? THEN 1
+                    WHEN description LIKE ? THEN 2
+                    ELSE 3
+                END
+            ", ["%{$search}%", "%{$search}%"]);
         }
 
         $allowedSortColumns = ['created_at', 'due_date', 'priority', 'status', 'title'];

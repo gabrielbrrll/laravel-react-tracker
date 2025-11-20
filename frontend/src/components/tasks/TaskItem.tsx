@@ -3,6 +3,7 @@ import { useState, memo } from 'react'
 
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
+import { HighlightedText } from '@/components/common/HighlightedText'
 import { formatDate } from '@/utils/formatters'
 
 import type { Task } from '@/api/types'
@@ -10,6 +11,7 @@ import type { Task } from '@/api/types'
 interface TaskItemProps {
   task: Task
   isPending: boolean
+  searchTerm?: string
   onEdit: (_task: Task) => void
   onDelete: (_taskId: number) => void
   onStatusChange: (_taskId: number, _status: Task['status']) => void
@@ -18,6 +20,7 @@ interface TaskItemProps {
 const TaskItemComponent = ({
   task,
   isPending,
+  searchTerm,
   onEdit,
   onDelete,
   onStatusChange,
@@ -88,9 +91,16 @@ const TaskItemComponent = ({
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <h3 className="text-base font-medium text-gray-900">{task.title}</h3>
+          <h3 className="text-base font-medium text-gray-900">
+            <HighlightedText text={task.title} searchTerm={searchTerm} />
+          </h3>
           {task.description && (
-            <p className="mt-1 text-sm text-gray-500">{task.description}</p>
+            <p className="mt-1 text-sm text-gray-500">
+              <HighlightedText
+                text={task.description}
+                searchTerm={searchTerm}
+              />
+            </p>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {task.status && (

@@ -179,6 +179,7 @@ export const Dashboard = () => {
           <TaskList
             tasks={tasks}
             pendingTaskIds={pendingTaskIds}
+            searchTerm={filters.search}
             onEdit={handleEditTask}
             onDelete={handleDeleteTask}
             onStatusChange={handleStatusChange}
