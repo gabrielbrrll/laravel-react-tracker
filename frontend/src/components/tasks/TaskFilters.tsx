@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-vars */
 import { Search } from 'lucide-react'
-import { useState } from 'react'
 
 import type { TaskFilters as TaskFiltersType } from '@/api/types'
 
@@ -29,11 +28,8 @@ export const TaskFilters = ({
   onDisplayOptionsChange,
   isVisible,
 }: TaskFiltersProps) => {
-  const [pendingFilters, setPendingFilters] = useState<TaskFiltersType>(filters)
-
   const handlePriorityChange = (priority?: TaskFiltersType['priority']) => {
-    const newFilters = { ...pendingFilters, priority }
-    setPendingFilters(newFilters)
+    const newFilters = { ...filters, priority }
     onFilterChange(newFilters)
   }
 
@@ -42,17 +38,16 @@ export const TaskFilters = ({
     sort_order?: TaskFiltersType['sort_order']
   ) => {
     const newFilters = {
-      ...pendingFilters,
+      ...filters,
       sort_by,
-      sort_order: sort_order || pendingFilters.sort_order,
+      sort_order: sort_order || filters.sort_order,
     }
-    setPendingFilters(newFilters)
     onFilterChange(newFilters)
   }
 
   const toggleSortOrder = () => {
-    const newOrder = pendingFilters.sort_order === 'asc' ? 'desc' : 'asc'
-    handleSortChange(pendingFilters.sort_by || 'created_at', newOrder)
+    const newOrder = filters.sort_order === 'asc' ? 'desc' : 'asc'
+    handleSortChange(filters.sort_by || 'created_at', newOrder)
   }
 
   if (!isVisible) return null
@@ -85,7 +80,7 @@ export const TaskFilters = ({
               { label: 'Medium', value: 'medium' as const },
               { label: 'High', value: 'high' as const },
             ].map((priority) => {
-              const isActive = pendingFilters.priority === priority.value
+              const isActive = filters.priority === priority.value
               return (
                 <button
                   key={priority.label}
@@ -109,7 +104,7 @@ export const TaskFilters = ({
           <div className="mb-2 text-sm font-medium text-gray-700">Sort By</div>
           <div className="flex gap-2">
             <select
-              value={pendingFilters.sort_by || 'created_at'}
+              value={filters.sort_by || 'created_at'}
               onChange={(e) =>
                 handleSortChange(e.target.value as TaskFiltersType['sort_by'])
               }
@@ -131,9 +126,9 @@ export const TaskFilters = ({
               type="button"
               onClick={toggleSortOrder}
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-sm shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-0"
-              title={`Sort ${pendingFilters.sort_order === 'asc' ? 'ascending' : 'descending'}`}
+              title={`Sort ${filters.sort_order === 'asc' ? 'ascending' : 'descending'}`}
             >
-              {pendingFilters.sort_order === 'asc' ? '↑' : '↓'}
+              {filters.sort_order === 'asc' ? '↑' : '↓'}
             </button>
           </div>
         </div>
