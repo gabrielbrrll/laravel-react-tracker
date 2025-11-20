@@ -41,7 +41,7 @@ class TaskTest extends TestCase
             'title' => 'New Task',
             'description' => 'Task description',
             'status' => 'pending',
-            'priority' => 1,
+            'priority' => 'medium',
             'due_date' => now()->addDays(7)->format('Y-m-d'),
         ];
 
@@ -54,7 +54,7 @@ class TaskTest extends TestCase
                 'data' => [
                     'title' => 'New Task',
                     'status' => 'pending',
-                    'priority' => 1,
+                    'priority' => 'medium',
                 ],
             ]);
 
@@ -115,7 +115,7 @@ class TaskTest extends TestCase
         $response = $this->withHeader('Authorization', "Bearer {$this->token}")
             ->putJson("/api/tasks/{$task->id}", [
                 'status' => 'completed',
-                'priority' => 2,
+                'priority' => 'high',
             ]);
 
         $response->assertStatus(200)
@@ -123,7 +123,7 @@ class TaskTest extends TestCase
                 'message' => 'Task updated successfully',
                 'data' => [
                     'status' => 'completed',
-                    'priority' => 2,
+                    'priority' => 'high',
                 ],
             ]);
 
@@ -198,19 +198,19 @@ class TaskTest extends TestCase
     {
         Task::factory()->create([
             'user_id' => $this->user->id,
-            'priority' => 2,
+            'priority' => 2, // high
         ]);
         Task::factory()->create([
             'user_id' => $this->user->id,
-            'priority' => 0,
+            'priority' => 0, // low
         ]);
 
         $response = $this->withHeader('Authorization', "Bearer {$this->token}")
-            ->getJson('/api/tasks?priority=2');
+            ->getJson('/api/tasks?priority=high');
 
         $response->assertStatus(200)
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.priority', 2);
+            ->assertJsonPath('data.0.priority', 'high');
     }
 
     public function test_can_get_task_statistics(): void
@@ -305,7 +305,7 @@ class TaskTest extends TestCase
             'title' => 'New Task',
             'description' => 'Task description',
             'status' => 'pending',
-            'priority' => 1,
+            'priority' => 'medium',
             'due_date' => now()->subDays(1)->format('Y-m-d'),
         ];
 
@@ -321,13 +321,13 @@ class TaskTest extends TestCase
         Task::factory()->create([
             'user_id' => $this->user->id,
             'title' => 'Task A',
-            'priority' => 2,
+            'priority' => 2, // high
         ]);
 
         Task::factory()->create([
             'user_id' => $this->user->id,
             'title' => 'Task B',
-            'priority' => 0,
+            'priority' => 0, // low
         ]);
 
         // Test sorting by priority ascending
@@ -335,8 +335,8 @@ class TaskTest extends TestCase
             ->getJson('/api/tasks?sort_by=priority&sort_order=asc');
 
         $response->assertStatus(200);
-        $this->assertEquals(0, $response->json('data.0.priority'));
-        $this->assertEquals(2, $response->json('data.1.priority'));
+        $this->assertEquals('low', $response->json('data.0.priority'));
+        $this->assertEquals('high', $response->json('data.1.priority'));
 
         // Test sorting by title descending
         $response = $this->withHeader('Authorization', "Bearer {$this->token}")

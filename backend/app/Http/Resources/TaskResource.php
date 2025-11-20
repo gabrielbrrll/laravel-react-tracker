@@ -29,14 +29,4 @@ class TaskResource extends JsonResource
             'updated_at' => $this->updated_at->toISOString(),
         ];
     }
-
-    private function getPriorityLabel(): string
-    {
-        return match ($this->priority) {
-            0 => 'Low',
-            1 => 'Medium',
-            2 => 'High',
-            default => 'Unknown',
-        };
-    }
 }
