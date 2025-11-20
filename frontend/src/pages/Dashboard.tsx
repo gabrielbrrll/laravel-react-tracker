@@ -1,29 +1,49 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
-import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { Spinner } from '@/components/common/Spinner'
+import { TaskFilters } from '@/components/tasks/TaskFilters'
+import { TaskForm, TaskFormData } from '@/components/tasks/TaskForm'
+import { TaskItem } from '@/components/tasks/TaskItem'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useTasks } from '@/hooks/useTasks'
 
+import type { Task, TaskFilters as TaskFiltersType } from '@/api/types'
+
 export const Dashboard = () => {
   const { user, logout } = useAuth()
-  const { tasks, statistics, loading, fetchTasks, fetchStatistics } = useTasks()
-  const { error: showError } = useToast()
+  const {
+    tasks,
+    statistics,
+    loading,
+    fetchTasks,
+    fetchStatistics,
+    createTask,
+    updateTask,
+    deleteTask,
+  } = useTasks()
+  const { error: showError, success } = useToast()
+
+  const [showTaskForm, setShowTaskForm] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [filters, setFilters] = useState<TaskFiltersType>({
+    sort_by: 'created_at',
+    sort_order: 'desc',
+  })
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        await Promise.all([fetchTasks(), fetchStatistics()])
-      } catch {
-        showError('Failed to load dashboard data')
-      }
-    }
-
     loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [filters])
+
+  const loadData = async () => {
+    try {
+      await Promise.all([fetchTasks(filters), fetchStatistics()])
+    } catch {
+      showError('Failed to load dashboard data')
+    }
+  }
 
   const handleLogout = async () => {
     try {
@@ -33,26 +53,62 @@ export const Dashboard = () => {
     }
   }
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'success'
-      case 'in_progress':
-        return 'info'
-      default:
-        return 'default'
+  const handleCreateTask = () => {
+    setEditingTask(null)
+    setShowTaskForm(true)
+  }
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task)
+    setShowTaskForm(true)
+  }
+
+  const handleTaskFormSubmit = async (data: TaskFormData) => {
+    try {
+      if (editingTask) {
+        await updateTask(editingTask.id, data)
+        success('Task updated successfully')
+      } else {
+        await createTask(data)
+        success('Task created successfully')
+      }
+      setShowTaskForm(false)
+      setEditingTask(null)
+      await loadData()
+    } catch {
+      showError(editingTask ? 'Failed to update task' : 'Failed to create task')
     }
   }
 
-  const getPriorityBadgeVariant = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'danger'
-      case 'medium':
-        return 'warning'
-      default:
-        return 'default'
+  const handleDeleteTask = async (taskId: number) => {
+    try {
+      await deleteTask(taskId)
+      success('Task deleted successfully')
+      await loadData()
+    } catch {
+      showError('Failed to delete task')
     }
+  }
+
+  const handleStatusChange = async (taskId: number, status: Task['status']) => {
+    try {
+      await updateTask(taskId, { status })
+      success('Task status updated')
+      await loadData()
+    } catch {
+      showError('Failed to update task status')
+    }
+  }
+
+  const handleFilterChange = (newFilters: TaskFiltersType) => {
+    setFilters(newFilters)
+  }
+
+  const handleResetFilters = () => {
+    setFilters({
+      sort_by: 'created_at',
+      sort_order: 'desc',
+    })
   }
 
   if (loading && tasks.length === 0) {
@@ -113,51 +169,53 @@ export const Dashboard = () => {
           </div>
         )}
 
+        <div className="mb-6">
+          <TaskFilters
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            onReset={handleResetFilters}
+          />
+        </div>
+
         <div className="rounded-lg bg-white shadow">
-          <div className="border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
             <h2 className="text-lg font-semibold text-gray-900">Your Tasks</h2>
+            <Button variant="primary" size="sm" onClick={handleCreateTask}>
+              Create Task
+            </Button>
           </div>
           {tasks.length === 0 ? (
             <div className="px-6 py-12 text-center">
               <p className="text-gray-500">
-                No tasks yet. Create one to get started!
+                No tasks found. Create one to get started!
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-gray-200">
+            <div>
               {tasks.map((task) => (
-                <li key={task.id} className="px-6 py-4 hover:bg-gray-50">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-base font-medium text-gray-900">
-                        {task.title}
-                      </h3>
-                      {task.description && (
-                        <p className="mt-1 text-sm text-gray-500">
-                          {task.description}
-                        </p>
-                      )}
-                      <div className="mt-2 flex items-center gap-2">
-                        <Badge variant={getStatusBadgeVariant(task.status)}>
-                          {task.status.replace('_', ' ')}
-                        </Badge>
-                        <Badge variant={getPriorityBadgeVariant(task.priority)}>
-                          {task.priority}
-                        </Badge>
-                        {task.due_date && (
-                          <span className="text-xs text-gray-500">
-                            Due: {new Date(task.due_date).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </li>
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onEdit={handleEditTask}
+                  onDelete={handleDeleteTask}
+                  onStatusChange={handleStatusChange}
+                />
               ))}
-            </ul>
+            </div>
           )}
         </div>
       </main>
+
+      {showTaskForm && (
+        <TaskForm
+          task={editingTask}
+          onSubmit={handleTaskFormSubmit}
+          onCancel={() => {
+            setShowTaskForm(false)
+            setEditingTask(null)
+          }}
+        />
+      )}
     </div>
   )
 }
