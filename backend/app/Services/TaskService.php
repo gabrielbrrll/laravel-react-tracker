@@ -34,6 +34,7 @@ class TaskService
             $query->where('priority', $priority);
         }
 
+        // Search filter
         $hasSearch = isset($filters['search']) && ! empty($filters['search']);
         if ($hasSearch) {
             $search = strtolower($filters['search']);
@@ -41,7 +42,22 @@ class TaskService
                 $q->whereRaw('LOWER(title) LIKE ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(description) LIKE ?', ["%{$search}%"]);
             });
+        }
 
+        // Sorting - user's sort preference takes precedence
+        $allowedSortColumns = ['created_at', 'due_date', 'priority', 'status', 'title'];
+        $sortBy = $filters['sort_by'] ?? 'created_at';
+        $sortBy = in_array($sortBy, $allowedSortColumns) ? $sortBy : 'created_at';
+
+        $sortOrder = $filters['sort_order'] ?? 'desc';
+        $sortOrder = in_array($sortOrder, ['asc', 'desc']) ? $sortOrder : 'desc';
+
+        // Apply user's primary sort
+        $query->orderBy($sortBy, $sortOrder);
+
+        // If searching and no explicit sort_by provided, add search relevance as secondary sort
+        if ($hasSearch && ! isset($filters['sort_by'])) {
+            $search = strtolower($filters['search']);
             $query->orderByRaw('
                 CASE
                     WHEN LOWER(title) LIKE ? THEN 1
@@ -50,15 +66,6 @@ class TaskService
                 END
             ', ["%{$search}%", "%{$search}%"]);
         }
-
-        $allowedSortColumns = ['created_at', 'due_date', 'priority', 'status', 'title'];
-        $sortBy = $filters['sort_by'] ?? 'created_at';
-        $sortBy = in_array($sortBy, $allowedSortColumns) ? $sortBy : 'created_at';
-
-        $sortOrder = $filters['sort_order'] ?? 'desc';
-        $sortOrder = in_array($sortOrder, ['asc', 'desc']) ? $sortOrder : 'desc';
-
-        $query->orderBy($sortBy, $sortOrder);
 
         $perPage = $filters['per_page'] ?? 15;
 
