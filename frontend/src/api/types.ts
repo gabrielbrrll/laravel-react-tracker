@@ -29,6 +29,7 @@ export interface TaskFilters {
   search?: string
   sort_by?: 'created_at' | 'due_date' | 'priority' | 'status' | 'title'
   sort_order?: 'asc' | 'desc'
+  page?: number
 }
 
 export interface PaginatedResponse<T> {

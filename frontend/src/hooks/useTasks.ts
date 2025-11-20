@@ -10,6 +10,13 @@ interface TaskResult {
   error?: string
 }
 
+interface PaginationMeta {
+  currentPage: number
+  lastPage: number
+  perPage: number
+  total: number
+}
+
 export const useTasks = () => {
   const {
     state: tasks,
@@ -21,6 +28,12 @@ export const useTasks = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(new Set())
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    currentPage: 1,
+    lastPage: 1,
+    perPage: 15,
+    total: 0,
+  })
 
   const tempIdCounter = useRef(-1)
 
@@ -29,12 +42,18 @@ export const useTasks = () => {
   }
 
   const fetchTasks = useCallback(
-    async (filters?: TaskFilters) => {
+    async (filters?: TaskFilters, page: number = 1) => {
       try {
         setLoading(true)
         setError(null)
-        const response = await tasksAPI.getTasks(filters)
+        const response = await tasksAPI.getTasks({ ...filters, page })
         setTasks(response.data)
+        setPagination({
+          currentPage: response.meta.current_page,
+          lastPage: response.meta.last_page,
+          perPage: response.meta.per_page,
+          total: response.meta.total,
+        })
       } catch (err) {
         const errorMessage =
           (err as { response?: { data?: { message?: string } } }).response?.data
@@ -166,6 +185,7 @@ export const useTasks = () => {
     error,
     isOptimistic,
     pendingTaskIds,
+    pagination,
     fetchTasks,
     createTask,
     updateTask,

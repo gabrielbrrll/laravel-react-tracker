@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react'
 
 import { Button } from '@/components/common/Button'
+import { Pagination } from '@/components/common/Pagination'
 import { Spinner } from '@/components/common/Spinner'
 import { TaskFilters } from '@/components/tasks/TaskFilters'
 import { TaskForm, TaskFormData } from '@/components/tasks/TaskForm'
-import { TaskItem } from '@/components/tasks/TaskItem'
+import { TaskList } from '@/components/tasks/TaskList'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useTasks } from '@/hooks/useTasks'
@@ -17,6 +18,7 @@ export const Dashboard = () => {
     tasks,
     loading,
     pendingTaskIds,
+    pagination,
     fetchTasks,
     createTask,
     updateTask,
@@ -27,6 +29,7 @@ export const Dashboard = () => {
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [isFiltering, setIsFiltering] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
   const [filters, setFilters] = useState<TaskFiltersType>({
     sort_by: 'created_at',
     sort_order: 'desc',
@@ -44,17 +47,24 @@ export const Dashboard = () => {
       return
     }
 
+    setCurrentPage(1)
     setIsFiltering(true)
-    loadData().finally(() => setIsFiltering(false))
+    loadData(1).finally(() => setIsFiltering(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters])
 
-  const loadData = async () => {
+  const loadData = async (page: number = currentPage) => {
     try {
-      await fetchTasks(filters)
+      await fetchTasks(filters, page)
     } catch {
       showError('Failed to load dashboard data')
     }
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    setIsFiltering(true)
+    loadData(page).finally(() => setIsFiltering(false))
   }
 
   const handleLogout = async () => {
@@ -166,25 +176,22 @@ export const Dashboard = () => {
               Create Task
             </Button>
           </div>
-          {tasks.length === 0 ? (
-            <div className="px-6 py-12 text-center">
-              <p className="text-gray-500">
-                No tasks found. Create one to get started!
-              </p>
-            </div>
-          ) : (
-            <div>
-              {tasks.map((task) => (
-                <TaskItem
-                  key={task.id}
-                  task={task}
-                  isPending={pendingTaskIds.has(task.id)}
-                  onEdit={handleEditTask}
-                  onDelete={handleDeleteTask}
-                  onStatusChange={handleStatusChange}
-                />
-              ))}
-            </div>
+          <TaskList
+            tasks={tasks}
+            pendingTaskIds={pendingTaskIds}
+            onEdit={handleEditTask}
+            onDelete={handleDeleteTask}
+            onStatusChange={handleStatusChange}
+          />
+          {tasks.length > 0 && (
+            <Pagination
+              currentPage={pagination.currentPage}
+              lastPage={pagination.lastPage}
+              total={pagination.total}
+              perPage={pagination.perPage}
+              onPageChange={handlePageChange}
+              isLoading={isFiltering}
+            />
           )}
         </div>
       </main>
