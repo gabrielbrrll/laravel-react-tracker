@@ -221,11 +221,11 @@ Features:
 After running `php artisan db:seed` or `docker-compose up`:
 
 ```
-Email: test@example.com
-Password: password
+Email: user@hello.com
+Password: Password$123!
 ```
 
-The seeder creates 5 users with 5 tasks each (25 total tasks).
+The seeder creates 1 test user with 5 tasks, plus 5 additional random users with 5 tasks each (30 total tasks).
 
 ## Docker Services
 

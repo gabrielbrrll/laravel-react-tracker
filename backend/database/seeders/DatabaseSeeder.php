@@ -16,6 +16,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Seed test user with credentials: user@hello.com / Password$123!
+        $this->call(TestUserSeeder::class);
+
+        // Seed additional random users for testing
         $users = User::factory(5)->create();
 
         $users->each(function (User $user) {
