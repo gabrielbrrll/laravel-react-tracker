@@ -26,6 +26,7 @@ class TaskController extends Controller
             'due_date',
             'overdue',
             'priority',
+            'search',
             'sort_by',
             'sort_order',
             'per_page',

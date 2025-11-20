@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 import { Button } from '@/components/common/Button'
 import { Spinner } from '@/components/common/Spinner'
@@ -15,10 +15,9 @@ export const Dashboard = () => {
   const { user, logout } = useAuth()
   const {
     tasks,
-    statistics,
     loading,
+    pendingTaskIds,
     fetchTasks,
-    fetchStatistics,
     createTask,
     updateTask,
     deleteTask,
@@ -27,19 +26,32 @@ export const Dashboard = () => {
 
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [isFiltering, setIsFiltering] = useState(false)
   const [filters, setFilters] = useState<TaskFiltersType>({
     sort_by: 'created_at',
     sort_order: 'desc',
   })
+  const isInitialMount = useRef(true)
 
   useEffect(() => {
     loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+
+    setIsFiltering(true)
+    loadData().finally(() => setIsFiltering(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters])
 
   const loadData = async () => {
     try {
-      await Promise.all([fetchTasks(filters), fetchStatistics()])
+      await fetchTasks(filters)
     } catch {
       showError('Failed to load dashboard data')
     }
@@ -64,39 +76,37 @@ export const Dashboard = () => {
   }
 
   const handleTaskFormSubmit = async (data: TaskFormData) => {
-    try {
-      if (editingTask) {
-        await updateTask(editingTask.id, data)
-        success('Task updated successfully')
-      } else {
-        await createTask(data)
-        success('Task created successfully')
-      }
+    const result = editingTask
+      ? await updateTask(editingTask.id, data, filters)
+      : await createTask(data, filters)
+
+    if (result.success) {
+      const action = editingTask ? 'updated' : 'created'
+      success(`Task ${action} successfully`)
       setShowTaskForm(false)
       setEditingTask(null)
-      await loadData()
-    } catch {
-      showError(editingTask ? 'Failed to update task' : 'Failed to create task')
+    } else {
+      showError(
+        result.error || `Failed to ${editingTask ? 'update' : 'create'} task`
+      )
     }
   }
 
   const handleDeleteTask = async (taskId: number) => {
-    try {
-      await deleteTask(taskId)
+    const result = await deleteTask(taskId)
+    if (result) {
       success('Task deleted successfully')
-      await loadData()
-    } catch {
+    } else {
       showError('Failed to delete task')
     }
   }
 
   const handleStatusChange = async (taskId: number, status: Task['status']) => {
-    try {
-      await updateTask(taskId, { status })
+    const result = await updateTask(taskId, { status }, filters)
+    if (result.success) {
       success('Task status updated')
-      await loadData()
-    } catch {
-      showError('Failed to update task status')
+    } else {
+      showError(result.error || 'Failed to update task status')
     }
   }
 
@@ -111,7 +121,7 @@ export const Dashboard = () => {
     })
   }
 
-  if (loading && tasks.length === 0) {
+  if (loading && tasks.length === 0 && !isFiltering) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Spinner size="lg" />
@@ -140,40 +150,12 @@ export const Dashboard = () => {
       </nav>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {statistics && (
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">Total Tasks</h3>
-              <p className="mt-2 text-3xl font-bold text-gray-900">
-                {statistics.total}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">Pending</h3>
-              <p className="mt-2 text-3xl font-bold text-yellow-600">
-                {statistics.pending}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">In Progress</h3>
-              <p className="mt-2 text-3xl font-bold text-blue-600">
-                {statistics.in_progress}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">Completed</h3>
-              <p className="mt-2 text-3xl font-bold text-green-600">
-                {statistics.completed}
-              </p>
-            </div>
-          </div>
-        )}
-
         <div className="mb-6">
           <TaskFilters
             filters={filters}
             onFilterChange={handleFilterChange}
             onReset={handleResetFilters}
+            isLoading={isFiltering}
           />
         </div>
 
@@ -196,6 +178,7 @@ export const Dashboard = () => {
                 <TaskItem
                   key={task.id}
                   task={task}
+                  isPending={pendingTaskIds.has(task.id)}
                   onEdit={handleEditTask}
                   onDelete={handleDeleteTask}
                   onStatusChange={handleStatusChange}

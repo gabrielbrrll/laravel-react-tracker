@@ -26,7 +26,20 @@ class TaskService
         }
 
         if (isset($filters['priority'])) {
-            $query->where('priority', $filters['priority']);
+            // Convert string priority to integer for database comparison
+            $priorityMap = ['low' => 0, 'medium' => 1, 'high' => 2];
+            $priority = is_string($filters['priority'])
+                ? ($priorityMap[$filters['priority']] ?? $filters['priority'])
+                : $filters['priority'];
+            $query->where('priority', $priority);
+        }
+
+        if (isset($filters['search']) && !empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'LIKE', "%{$search}%")
+                    ->orWhere('description', 'LIKE', "%{$search}%");
+            });
         }
 
         $allowedSortColumns = ['created_at', 'due_date', 'priority', 'status', 'title'];

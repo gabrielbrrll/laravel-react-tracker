@@ -1,4 +1,6 @@
 /* eslint-disable no-unused-vars */
+import { useState, useEffect } from 'react'
+
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 
@@ -8,13 +10,29 @@ interface TaskFiltersProps {
   filters: TaskFiltersType
   onFilterChange: (_filters: TaskFiltersType) => void
   onReset: () => void
+  isLoading?: boolean
 }
 
 export const TaskFilters = ({
   filters,
   onFilterChange,
   onReset,
+  isLoading = false,
 }: TaskFiltersProps) => {
+  const [searchValue, setSearchValue] = useState(filters.search || '')
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onFilterChange({
+        ...filters,
+        search: searchValue || undefined,
+      })
+    }, 300)
+
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchValue])
+
   const handleStatusChange = (status: string) => {
     onFilterChange({
       ...filters,
@@ -33,13 +51,6 @@ export const TaskFilters = ({
     })
   }
 
-  const handleSearchChange = (search: string) => {
-    onFilterChange({
-      ...filters,
-      search: search || undefined,
-    })
-  }
-
   const handleSortChange = (sortBy: string) => {
     onFilterChange({
       ...filters,
@@ -54,15 +65,25 @@ export const TaskFilters = ({
     })
   }
 
+  const handleReset = () => {
+    setSearchValue('')
+    onReset()
+  }
+
   const hasActiveFilters =
     filters.status || filters.priority || filters.search || filters.sort_by
 
   return (
     <div className="rounded-lg bg-white p-4 shadow">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+          {isLoading && (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+          )}
+        </div>
         {hasActiveFilters && (
-          <Button variant="secondary" size="sm" onClick={onReset}>
+          <Button variant="secondary" size="sm" onClick={handleReset}>
             Reset
           </Button>
         )}
@@ -73,8 +94,8 @@ export const TaskFilters = ({
           <Input
             label="Search"
             type="text"
-            value={filters.search || ''}
-            onChange={(e) => handleSearchChange(e.target.value)}
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
             placeholder="Search tasks..."
           />
         </div>

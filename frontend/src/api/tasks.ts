@@ -18,16 +18,19 @@ export const tasksAPI = {
 
   // Get single task by ID
   getTask: async (id: number): Promise<Task> => {
-    const response = await apiClient.get<Task>(`/tasks/${id}`)
-    return response.data
+    const response = await apiClient.get<{ data: Task }>(`/tasks/${id}`)
+    return response.data.data
   },
 
   // Create new task
   createTask: async (
     data: Omit<Task, 'id' | 'created_at' | 'updated_at'>
   ): Promise<Task> => {
-    const response = await apiClient.post<Task>('/tasks', data)
-    return response.data
+    const response = await apiClient.post<{ message: string; data: Task }>(
+      '/tasks',
+      data
+    )
+    return response.data.data
   },
 
   // Update existing task
@@ -35,8 +38,11 @@ export const tasksAPI = {
     id: number,
     data: Partial<Omit<Task, 'id' | 'created_at' | 'updated_at'>>
   ): Promise<Task> => {
-    const response = await apiClient.put<Task>(`/tasks/${id}`, data)
-    return response.data
+    const response = await apiClient.put<{ message: string; data: Task }>(
+      `/tasks/${id}`,
+      data
+    )
+    return response.data.data
   },
 
   // Delete task
@@ -46,7 +52,9 @@ export const tasksAPI = {
 
   // Get task statistics
   getStatistics: async (): Promise<TaskStatistics> => {
-    const response = await apiClient.get<TaskStatistics>('/tasks/statistics')
-    return response.data
+    const response = await apiClient.get<{ data: TaskStatistics }>(
+      '/tasks/statistics'
+    )
+    return response.data.data
   },
 }

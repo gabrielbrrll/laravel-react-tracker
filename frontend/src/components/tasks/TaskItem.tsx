@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { useState } from 'react'
+import { useState, memo } from 'react'
 
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
@@ -9,13 +9,15 @@ import type { Task } from '@/api/types'
 
 interface TaskItemProps {
   task: Task
+  isPending: boolean
   onEdit: (_task: Task) => void
   onDelete: (_taskId: number) => void
   onStatusChange: (_taskId: number, _status: Task['status']) => void
 }
 
-export const TaskItem = ({
+const TaskItemComponent = ({
   task,
+  isPending,
   onEdit,
   onDelete,
   onStatusChange,
@@ -79,7 +81,11 @@ export const TaskItem = ({
   const nextStatus = getNextStatus()
 
   return (
-    <div className="border-b border-gray-200 px-6 py-4 hover:bg-gray-50">
+    <div
+      className={`border-b border-gray-200 px-6 py-4 hover:bg-gray-50 ${
+        isPending ? 'opacity-60' : ''
+      }`}
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <h3 className="text-base font-medium text-gray-900">{task.title}</h3>
@@ -87,12 +93,16 @@ export const TaskItem = ({
             <p className="mt-1 text-sm text-gray-500">{task.description}</p>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Badge variant={getStatusBadgeVariant(task.status)}>
-              {task.status.replace('_', ' ')}
-            </Badge>
-            <Badge variant={getPriorityBadgeVariant(task.priority)}>
-              {task.priority}
-            </Badge>
+            {task.status && (
+              <Badge variant={getStatusBadgeVariant(task.status)}>
+                {task.status.replace('_', ' ')}
+              </Badge>
+            )}
+            {task.priority && (
+              <Badge variant={getPriorityBadgeVariant(task.priority)}>
+                {task.priority}
+              </Badge>
+            )}
             {task.due_date && (
               <span className="text-xs text-gray-500">
                 Due: {formatDate(task.due_date)}
@@ -107,7 +117,7 @@ export const TaskItem = ({
               size="sm"
               variant="primary"
               onClick={() => handleStatusChange(nextStatus)}
-              disabled={isUpdatingStatus || isDeleting}
+              disabled={isUpdatingStatus || isDeleting || isPending}
               loading={isUpdatingStatus}
             >
               {nextStatus === 'in_progress' ? 'Start' : 'Complete'}
@@ -117,7 +127,7 @@ export const TaskItem = ({
             size="sm"
             variant="secondary"
             onClick={() => onEdit(task)}
-            disabled={isDeleting || isUpdatingStatus}
+            disabled={isDeleting || isUpdatingStatus || isPending}
           >
             Edit
           </Button>
@@ -125,7 +135,7 @@ export const TaskItem = ({
             size="sm"
             variant="danger"
             onClick={handleDelete}
-            disabled={isDeleting || isUpdatingStatus}
+            disabled={isDeleting || isUpdatingStatus || isPending}
             loading={isDeleting}
           >
             Delete
@@ -135,3 +145,7 @@ export const TaskItem = ({
     </div>
   )
 }
+
+TaskItemComponent.displayName = 'TaskItem'
+
+export const TaskItem = memo(TaskItemComponent)
