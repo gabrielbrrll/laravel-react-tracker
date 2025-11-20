@@ -1,17 +1,19 @@
 /* eslint-disable no-unused-vars */
-import { useState, memo } from 'react'
+import { CheckCircle, Pencil, Play, Trash2 } from 'lucide-react'
+import { memo, useState } from 'react'
 
 import { Badge } from '@/components/common/Badge'
-import { Button } from '@/components/common/Button'
 import { HighlightedText } from '@/components/common/HighlightedText'
 import { formatDate } from '@/utils/formatters'
 
 import type { Task } from '@/api/types'
+import type { DisplayOptions } from '@/components/tasks/TaskFilters'
 
 interface TaskItemProps {
   task: Task
   isPending: boolean
   searchTerm?: string
+  displayOptions: DisplayOptions
   onEdit: (_task: Task) => void
   onDelete: (_taskId: number) => void
   onStatusChange: (_taskId: number, _status: Task['status']) => void
@@ -21,6 +23,7 @@ const TaskItemComponent = ({
   task,
   isPending,
   searchTerm,
+  displayOptions,
   onEdit,
   onDelete,
   onStatusChange,
@@ -85,7 +88,7 @@ const TaskItemComponent = ({
 
   return (
     <div
-      className={`border-b border-gray-200 px-6 py-4 hover:bg-gray-50 ${
+      className={`group border-b border-gray-200 px-6 py-4 hover:bg-gray-50 ${
         isPending ? 'opacity-60' : ''
       }`}
     >
@@ -103,17 +106,17 @@ const TaskItemComponent = ({
             </p>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            {task.status && (
+            {displayOptions.showStatus && task.status && (
               <Badge variant={getStatusBadgeVariant(task.status)}>
                 {task.status.replace('_', ' ')}
               </Badge>
             )}
-            {task.priority && (
+            {displayOptions.showPriority && task.priority && (
               <Badge variant={getPriorityBadgeVariant(task.priority)}>
                 {task.priority}
               </Badge>
             )}
-            {task.due_date && (
+            {displayOptions.showDueDate && task.due_date && (
               <span className="text-xs text-gray-500">
                 Due: {formatDate(task.due_date)}
               </span>
@@ -121,35 +124,48 @@ const TaskItemComponent = ({
           </div>
         </div>
 
-        <div className="ml-4 flex flex-shrink-0 gap-2">
+        <div className="ml-4 flex flex-shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           {nextStatus && (
-            <Button
-              size="sm"
-              variant="primary"
+            <button
+              type="button"
               onClick={() => handleStatusChange(nextStatus)}
               disabled={isUpdatingStatus || isDeleting || isPending}
-              loading={isUpdatingStatus}
+              className="rounded p-1.5 text-green-600 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+              title={
+                nextStatus === 'in_progress' ? 'Start task' : 'Complete task'
+              }
             >
-              {nextStatus === 'in_progress' ? 'Start' : 'Complete'}
-            </Button>
+              {isUpdatingStatus ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+              ) : nextStatus === 'in_progress' ? (
+                <Play className="h-4 w-4" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+            </button>
           )}
-          <Button
-            size="sm"
-            variant="secondary"
+          <button
+            type="button"
             onClick={() => onEdit(task)}
             disabled={isDeleting || isUpdatingStatus || isPending}
+            className="rounded p-1.5 text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+            title="Edit task"
           >
-            Edit
-          </Button>
-          <Button
-            size="sm"
-            variant="danger"
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
             onClick={handleDelete}
             disabled={isDeleting || isUpdatingStatus || isPending}
-            loading={isDeleting}
+            className="rounded p-1.5 text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            title="Delete task"
           >
-            Delete
-          </Button>
+            {isDeleting ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+          </button>
         </div>
       </div>
     </div>

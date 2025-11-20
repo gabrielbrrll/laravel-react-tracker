@@ -1,162 +1,125 @@
 /* eslint-disable no-unused-vars */
+import { Search } from 'lucide-react'
 import { useState } from 'react'
-
-import { Button } from '@/components/common/Button'
-import { Input } from '@/components/common/Input'
 
 import type { TaskFilters as TaskFiltersType } from '@/api/types'
 
+export interface DisplayOptions {
+  showStatus: boolean
+  showPriority: boolean
+  showDueDate: boolean
+}
+
 interface TaskFiltersProps {
   filters: TaskFiltersType
+  searchTerm: string
+  displayOptions: DisplayOptions
   onFilterChange: (_filters: TaskFiltersType) => void
-  onReset: () => void
-  isLoading?: boolean
+  onSearchChange: (_value: string) => void
+  onDisplayOptionsChange: (_options: DisplayOptions) => void
+  isVisible: boolean
 }
 
 export const TaskFilters = ({
   filters,
+  searchTerm,
+  displayOptions,
   onFilterChange,
-  onReset,
-  isLoading = false,
+  onSearchChange,
+  onDisplayOptionsChange,
+  isVisible,
 }: TaskFiltersProps) => {
   const [pendingFilters, setPendingFilters] = useState<TaskFiltersType>(filters)
 
-  const hasChanges =
-    pendingFilters.search !== filters.search ||
-    pendingFilters.status !== filters.status ||
-    pendingFilters.priority !== filters.priority ||
-    pendingFilters.sort_by !== filters.sort_by ||
-    pendingFilters.sort_order !== filters.sort_order
-
-  const handleApply = () => {
-    onFilterChange(pendingFilters)
+  const handlePriorityChange = (priority?: TaskFiltersType['priority']) => {
+    const newFilters = { ...pendingFilters, priority }
+    setPendingFilters(newFilters)
+    onFilterChange(newFilters)
   }
 
-  const handleReset = () => {
-    const defaultFilters: TaskFiltersType = {
-      sort_by: 'created_at',
-      sort_order: 'desc',
+  const handleSortChange = (
+    sort_by: TaskFiltersType['sort_by'],
+    sort_order?: TaskFiltersType['sort_order']
+  ) => {
+    const newFilters = {
+      ...pendingFilters,
+      sort_by,
+      sort_order: sort_order || pendingFilters.sort_order,
     }
-    setPendingFilters(defaultFilters)
-    onReset()
+    setPendingFilters(newFilters)
+    onFilterChange(newFilters)
   }
 
-  const hasActiveFilters =
-    filters.status || filters.priority || filters.search || filters.sort_by
+  const toggleSortOrder = () => {
+    const newOrder = pendingFilters.sort_order === 'asc' ? 'desc' : 'asc'
+    handleSortChange(pendingFilters.sort_by || 'created_at', newOrder)
+  }
+
+  if (!isVisible) return null
 
   return (
-    <div className="rounded-lg bg-white p-4 shadow">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
-          {isLoading && (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
-          )}
-        </div>
-        <div className="flex gap-2">
-          {hasChanges && (
-            <Button variant="primary" size="sm" onClick={handleApply}>
-              Apply
-            </Button>
-          )}
-          {hasActiveFilters && (
-            <Button variant="secondary" size="sm" onClick={handleReset}>
-              Reset
-            </Button>
-          )}
+    <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
+      {/* Search */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search tasks..."
+            className="h-9 w-full rounded-lg border border-gray-200 py-2 pl-10 pr-3 text-sm shadow-sm transition-colors hover:border-gray-300 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-0"
+          />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Priority and Sort By */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {/* Priority */}
         <div>
-          <Input
-            label="Search"
-            type="text"
-            value={pendingFilters.search || ''}
-            onChange={(e) =>
-              setPendingFilters({
-                ...pendingFilters,
-                search: e.target.value || undefined,
-              })
-            }
-            placeholder="Search tasks..."
-          />
+          <div className="mb-2 text-sm font-medium text-gray-700">Priority</div>
+          <div className="inline-flex h-9 items-center justify-center rounded-lg bg-gray-100 p-1 text-gray-500">
+            {[
+              { label: 'All', value: undefined },
+              { label: 'Low', value: 'low' as const },
+              { label: 'Medium', value: 'medium' as const },
+              { label: 'High', value: 'high' as const },
+            ].map((priority) => {
+              const isActive = pendingFilters.priority === priority.value
+              return (
+                <button
+                  key={priority.label}
+                  type="button"
+                  onClick={() => handlePriorityChange(priority.value)}
+                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-white text-gray-900 shadow'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {priority.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
+        {/* Sort By */}
         <div>
-          <label
-            htmlFor="status-filter"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Status
-          </label>
-          <select
-            id="status-filter"
-            value={pendingFilters.status || 'all'}
-            onChange={(e) =>
-              setPendingFilters({
-                ...pendingFilters,
-                status:
-                  e.target.value === 'all'
-                    ? undefined
-                    : (e.target.value as TaskFiltersType['status']),
-              })
-            }
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-          </select>
-        </div>
-
-        <div>
-          <label
-            htmlFor="priority-filter"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Priority
-          </label>
-          <select
-            id="priority-filter"
-            value={pendingFilters.priority || 'all'}
-            onChange={(e) =>
-              setPendingFilters({
-                ...pendingFilters,
-                priority:
-                  e.target.value === 'all'
-                    ? undefined
-                    : (e.target.value as TaskFiltersType['priority']),
-              })
-            }
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="all">All Priority</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-
-        <div>
-          <label
-            htmlFor="sort-by-filter"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Sort By
-          </label>
+          <div className="mb-2 text-sm font-medium text-gray-700">Sort By</div>
           <div className="flex gap-2">
             <select
-              id="sort-by-filter"
               value={pendingFilters.sort_by || 'created_at'}
               onChange={(e) =>
-                setPendingFilters({
-                  ...pendingFilters,
-                  sort_by: e.target.value as TaskFiltersType['sort_by'],
-                })
+                handleSortChange(e.target.value as TaskFiltersType['sort_by'])
               }
-              className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="h-9 flex-1 appearance-none rounded-lg border border-gray-200 bg-white px-3 py-2 pr-8 text-sm shadow-sm transition-colors hover:border-gray-300 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-0"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                backgroundPosition: 'right 0.5rem center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '1.5em 1.5em',
+              }}
             >
               <option value="created_at">Created Date</option>
               <option value="due_date">Due Date</option>
@@ -166,19 +129,64 @@ export const TaskFilters = ({
             </select>
             <button
               type="button"
-              onClick={() =>
-                setPendingFilters({
-                  ...pendingFilters,
-                  sort_order:
-                    pendingFilters.sort_order === 'asc' ? 'desc' : 'asc',
-                })
-              }
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm hover:bg-gray-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              onClick={toggleSortOrder}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-sm shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-0"
               title={`Sort ${pendingFilters.sort_order === 'asc' ? 'ascending' : 'descending'}`}
             >
               {pendingFilters.sort_order === 'asc' ? '↑' : '↓'}
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Display Options */}
+      <div className="mt-4 border-t border-gray-200 pt-4">
+        <div className="mb-2 text-sm font-medium text-gray-700">
+          Show in Task List
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={displayOptions.showStatus}
+              onChange={(e) =>
+                onDisplayOptionsChange({
+                  ...displayOptions,
+                  showStatus: e.target.checked,
+                })
+              }
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Status</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={displayOptions.showPriority}
+              onChange={(e) =>
+                onDisplayOptionsChange({
+                  ...displayOptions,
+                  showPriority: e.target.checked,
+                })
+              }
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Priority</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={displayOptions.showDueDate}
+              onChange={(e) =>
+                onDisplayOptionsChange({
+                  ...displayOptions,
+                  showDueDate: e.target.checked,
+                })
+              }
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Due Date</span>
+          </label>
         </div>
       </div>
     </div>

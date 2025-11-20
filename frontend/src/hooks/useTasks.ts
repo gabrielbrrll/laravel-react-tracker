@@ -67,8 +67,7 @@ export const useTasks = () => {
   )
 
   const createTask = async (
-    data: Omit<Task, 'id' | 'created_at' | 'updated_at'>,
-    filters?: TaskFilters
+    data: Omit<Task, 'id' | 'created_at' | 'updated_at'>
   ): Promise<TaskResult> => {
     const tempId = generateTempId()
 
@@ -87,13 +86,15 @@ export const useTasks = () => {
       optimisticState,
       () => tasksAPI.createTask(data),
       {
-        onSuccess: async () => {
+        onSuccess: (newTask) => {
           setPendingTaskIds((prev) => {
             const next = new Set(prev)
             next.delete(tempId)
             return next
           })
-          await fetchTasks(filters)
+          setTasks((currentTasks) =>
+            currentTasks.map((t) => (t.id === tempId ? newTask : t))
+          )
         },
         onError: (err) => {
           setPendingTaskIds((prev) => {
@@ -118,8 +119,7 @@ export const useTasks = () => {
 
   const updateTask = async (
     id: number,
-    data: Partial<Omit<Task, 'id' | 'created_at' | 'updated_at'>>,
-    filters?: TaskFilters
+    data: Partial<Omit<Task, 'id' | 'created_at' | 'updated_at'>>
   ): Promise<TaskResult> => {
     setPendingTaskIds((prev) => new Set(prev).add(id))
 
@@ -131,13 +131,15 @@ export const useTasks = () => {
       optimisticState,
       () => tasksAPI.updateTask(id, data),
       {
-        onSuccess: async () => {
+        onSuccess: (updatedTask) => {
           setPendingTaskIds((prev) => {
             const next = new Set(prev)
             next.delete(id)
             return next
           })
-          await fetchTasks(filters)
+          setTasks((currentTasks) =>
+            currentTasks.map((t) => (t.id === id ? updatedTask : t))
+          )
         },
         onError: (err) => {
           setPendingTaskIds((prev) => {

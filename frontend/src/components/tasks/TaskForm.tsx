@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-vars */
+import { X } from 'lucide-react'
 import { useState, useEffect, FormEvent } from 'react'
 
 import { Button } from '@/components/common/Button'
@@ -74,13 +75,30 @@ export const TaskForm = ({ task, onSubmit, onCancel }: TaskFormProps) => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl">
-        <h2 className="mb-4 text-2xl font-bold text-gray-900">
-          {task ? 'Edit Task' : 'Create New Task'}
-        </h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-2xl">
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              {task ? 'Edit Task' : 'Create New Task'}
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              {task
+                ? 'Update the task details below'
+                : 'Fill in the details to create a new task'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <Input
             label="Title"
             type="text"
@@ -106,7 +124,7 @@ export const TaskForm = ({ task, onSubmit, onCancel }: TaskFormProps) => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm transition-colors hover:border-gray-300 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-0"
               rows={4}
               placeholder="Enter task description (optional)"
             />
@@ -132,7 +150,13 @@ export const TaskForm = ({ task, onSubmit, onCancel }: TaskFormProps) => {
                     status: e.target.value as TaskFormData['status'],
                   })
                 }
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full appearance-none rounded-lg border border-gray-200 px-3 py-2 pr-8 text-sm shadow-sm transition-colors hover:border-gray-300 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-0"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                  backgroundPosition: 'right 0.5rem center',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundSize: '1.5em 1.5em',
+                }}
               >
                 <option value="pending">Pending</option>
                 <option value="in_progress">In Progress</option>
@@ -156,7 +180,13 @@ export const TaskForm = ({ task, onSubmit, onCancel }: TaskFormProps) => {
                     priority: e.target.value as TaskFormData['priority'],
                   })
                 }
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full appearance-none rounded-lg border border-gray-200 px-3 py-2 pr-8 text-sm shadow-sm transition-colors hover:border-gray-300 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-0"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                  backgroundPosition: 'right 0.5rem center',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundSize: '1.5em 1.5em',
+                }}
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -178,10 +208,10 @@ export const TaskForm = ({ task, onSubmit, onCancel }: TaskFormProps) => {
             placeholder="Select due date (optional)"
           />
 
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-3 border-t border-gray-200 pt-5">
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               onClick={onCancel}
               disabled={loading}
             >

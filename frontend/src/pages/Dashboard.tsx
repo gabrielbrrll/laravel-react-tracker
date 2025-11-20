@@ -1,8 +1,10 @@
+import { Filter, Plus } from 'lucide-react'
 import { useEffect, useState, useRef } from 'react'
 
 import { Button } from '@/components/common/Button'
 import { Pagination } from '@/components/common/Pagination'
 import { Spinner } from '@/components/common/Spinner'
+import { StatusTabs } from '@/components/tasks/StatusTabs'
 import { TaskFilters } from '@/components/tasks/TaskFilters'
 import { TaskForm, TaskFormData } from '@/components/tasks/TaskForm'
 import { TaskList } from '@/components/tasks/TaskList'
@@ -30,6 +32,13 @@ export const Dashboard = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [isFiltering, setIsFiltering] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [showFilters, setShowFilters] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [displayOptions, setDisplayOptions] = useState({
+    showStatus: true,
+    showPriority: true,
+    showDueDate: true,
+  })
   const [filters, setFilters] = useState<TaskFiltersType>({
     sort_by: 'created_at',
     sort_order: 'desc',
@@ -87,8 +96,8 @@ export const Dashboard = () => {
 
   const handleTaskFormSubmit = async (data: TaskFormData) => {
     const result = editingTask
-      ? await updateTask(editingTask.id, data, filters)
-      : await createTask(data, filters)
+      ? await updateTask(editingTask.id, data)
+      : await createTask(data)
 
     if (result.success) {
       const action = editingTask ? 'updated' : 'created'
@@ -112,9 +121,13 @@ export const Dashboard = () => {
   }
 
   const handleStatusChange = async (taskId: number, status: Task['status']) => {
-    const result = await updateTask(taskId, { status }, filters)
+    const result = await updateTask(taskId, { status })
     if (result.success) {
       success('Task status updated')
+      // If we're filtering by status and the new status doesn't match, refetch to update the view
+      if (filters.status && filters.status !== status) {
+        await loadData(currentPage)
+      }
     } else {
       showError(result.error || 'Failed to update task status')
     }
@@ -124,11 +137,13 @@ export const Dashboard = () => {
     setFilters(newFilters)
   }
 
-  const handleResetFilters = () => {
-    setFilters({
-      sort_by: 'created_at',
-      sort_order: 'desc',
-    })
+  const handleStatusFilterChange = (status?: Task['status']) => {
+    setFilters({ ...filters, status })
+  }
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value)
+    setFilters({ ...filters, search: value || undefined })
   }
 
   if (loading && tasks.length === 0 && !isFiltering) {
@@ -160,31 +175,64 @@ export const Dashboard = () => {
       </nav>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-6">
+        <div className="rounded-lg bg-white shadow">
+          {/* Header with Title, Create Button, Filter Icon, and Status Tabs */}
+          <div className="border-b border-gray-200 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Your Tasks
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleCreateTask}
+                  className="rounded p-1.5 text-gray-600 transition-colors hover:bg-gray-100"
+                  title="Create task"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex items-center gap-3">
+                <StatusTabs
+                  activeStatus={filters.status}
+                  onChange={handleStatusFilterChange}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`rounded p-1.5 transition-colors ${
+                    showFilters
+                      ? 'bg-blue-100 text-blue-600'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                  title="Toggle filters"
+                >
+                  <Filter className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Collapsible Filters */}
           <TaskFilters
             filters={filters}
+            searchTerm={searchTerm}
+            displayOptions={displayOptions}
             onFilterChange={handleFilterChange}
-            onReset={handleResetFilters}
-            isLoading={isFiltering}
+            onSearchChange={handleSearchChange}
+            onDisplayOptionsChange={setDisplayOptions}
+            isVisible={showFilters}
           />
-        </div>
-
-        <div className="rounded-lg bg-white shadow">
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-            <h2 className="text-lg font-semibold text-gray-900">Your Tasks</h2>
-            <Button variant="primary" size="sm" onClick={handleCreateTask}>
-              Create Task
-            </Button>
-          </div>
           <TaskList
             tasks={tasks}
             pendingTaskIds={pendingTaskIds}
             searchTerm={filters.search}
+            displayOptions={displayOptions}
             onEdit={handleEditTask}
             onDelete={handleDeleteTask}
             onStatusChange={handleStatusChange}
           />
-          {tasks.length > 0 && (
+          {pagination.total > 0 && (
             <Pagination
               currentPage={pagination.currentPage}
               lastPage={pagination.lastPage}
