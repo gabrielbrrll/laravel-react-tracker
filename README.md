@@ -44,6 +44,10 @@ The easiest way to run the application with all services containerized:
 git clone <repository-url>
 cd laravel-react-vite-task-tracker
 
+# Create environment files
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+
 # Start all services
 docker-compose up -d --build
 
